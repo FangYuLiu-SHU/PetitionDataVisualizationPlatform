@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../static/layui/css/layui.css" media="all">
+    <style>
+
+    </style>
+</head>
+<body style="height: 100%;margin: 0">
+<div id="control">
+    <form name="theForm1" id="the_form1" class="layui-form" action="##" onsubmit="return false"
+          method="post" lay-filter="form_submit" enctype='multipart/form-data'><br><br>
+<!--    <form class="layui-form" method="POST">-->
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">投诉内容：</label>
+            <div class="layui-input-block" style="width: 88%;">
+                <textarea placeholder="请输入诉讼内容" class="layui-textarea" id="rich_text_box"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" id="my_btn0" lay-submit="*" lay-filter="btn_submit">立即提交</button>
+                <button class="layui-btn layui-btn-primary" id="my_btn1" lay-submit="*" lay-filter="btn_reset">重置</button>
+            </div>
+        </div>
+        <div id="my_container" style="visibility: hidden;">
+        <div class="layui-form-item" id="emergency_container">
+            <label class="layui-form-label">紧急程度：</label>
+            <div class="layui-input-inline" style="margin-top: 8px;">
+                <span class="layui-badge" id="degree_of_urgency" style="height: 18px;font-size: 14px;">紧急</span>
+            </div>
+        </div>
+        <div class="layui-form-item" id="keyword_container">
+            <label class="layui-form-label">核心词汇：</label>
+            <div class="layui-input-inline" style="width: 88%; margin-left: -16px;">
+                <label class="layui-form-label" id="keyword" style="width: 100%; text-align: left;">[八嘎, 压路]</label>
+            </div>
+        </div>
+        <div class="layui-form-item" id="issue_container">
+            <label class="layui-form-label">诉求问题：</label>
+            <div class="layui-input-inline" style="width: 88%; margin-left: -16px;">
+                <label class="layui-form-label" id="issue" style="width: 100%; text-align: left;">吧啦啦能量</label>
+            </div>
+        </div>
+        <div class="layui-form-item" id="organization_container">
+            <label class="layui-form-label">相关机构：</label>
+            <div class="layui-input-inline" style="width: 88%; margin-left: -16px;">
+                <label class="layui-form-label" id="organization" style="width: 100%; text-align: left;">纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心,纳思校外培训中心，纳思校外培训中心，纳思校外培训中心，纳思校外培训中心，纳思校外培训中心，纳思校外培训中心</label>
+            </div>
+        </div>
+        <div class="layui-form-item" id="address_container">
+            <label class="layui-form-label">关联地址：</label>
+            <div class="layui-input-inline" style="width: 88%; margin-left: -16px;">
+                <label class="layui-form-label" id="address" style="width: 100%; text-align: left;">宝山区福明路与百丈东路交汇处太古城小区</label>
+            </div>
+        </div>
+        </div>
+    </form>
+</div>
+<div id="container" style="height: 100%;width:30%">
+    <div id="chart1" style="width: 200%; height: 100%;float:left;"></div>
+</div>
+<script src="../static/layui/layui.js"></script>
+<script src="../static/js/jquery.js"></script>
+<script type="text/javascript" src="/static/js/echarts.js"></script>
+<script type="text/javascript" src="/static/js/function.js"></script>
+<script src="../static/js/jquery.cookie.js"></script>
+<script type="text/javascript">
+layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit'], function(){
+    var element = layui.element
+        , form = layui.form
+        , layer = layui.layer
+        , util = layui.util
+        , table = layui.table
+        , $ = layui.jquery;
+    //开始时隐藏结果标签
+    var layedit = layui.layedit;
+    var editIndex = layedit.build('rich_text_box', {
+        tool: ['strong', 'italic', 'underline', 'del', '|', 'left', 'center', 'right'],
+        height: 100
+    });
+    layedit.sync(editIndex);
+    //代码
+    (()=>{
+        if($.cookie('user') == undefined)
+            $(window).attr('location','/login');
+    })()
+    //监听提交
+    form.on('submit(btn_submit)', function (data) {
+        var content = layedit.getText(editIndex); //文本框，纯文本内容读取，getContent读取html内容
+        if(content==""){
+            layer.msg('请输入投诉内容！', {icon: 7, time: 2000, shade: [0.6, '#000', true]});
+            return;
+        }
+        var postData = {"content": content};
+        layer.load(2);
+        $.ajax({
+            url: "LawsuitExtract",
+            type: "POST",
+            dataType: "json",
+            data: postData,
+            success: function (newData) {
+                layer.closeAll('loading');
+                degree_of_urgency = newData["degree_of_urgency"];
+                keyword = newData["keyword"];
+                issue = newData["issue"];
+                organization = newData["organization"];
+                address = newData["address"];
+                degree_of_urgency_span = document.getElementById('degree_of_urgency');
+                degree_of_urgency_span.innerText = degree_of_urgency;
+                if(degree_of_urgency == "一般"){
+                    degree_of_urgency_span.className = "layui-badge layui-bg-gray";
+                }
+                else if(degree_of_urgency == "紧急"){
+                    degree_of_urgency_span.className = "layui-badge";
+                }
+                document.getElementById('keyword').innerText = keyword;
+                document.getElementById('issue').innerText = issue;
+                document.getElementById('organization').innerText = organization;
+                document.getElementById('address').innerText = address;
+                //展示结果
+                document.getElementById("my_container").style.visibility="visible";
+            },
+            error: function () {
+                layer.msg('处理出错！', {icon: 7, time: 2000, shade: [0.6, '#000', true]});
+            }
+        });
+        form.render();
+        return;
+    });
+    //监听提交
+    form.on('submit(btn_reset)', function (data) {
+        layedit.setContent(editIndex, ""); //内容写入，富文本框
+        document.getElementById('degree_of_urgency').innerText = "";
+        document.getElementById('keyword').innerText = "";
+        document.getElementById('issue').innerText = "";
+        document.getElementById('organization').innerText = "";
+        document.getElementById('address').innerText = "";
+        // 重置时隐藏结果标签
+        document.getElementById("my_container").style.visibility = "hidden";
+        form.render();
+    });
+    form.render();
+});
+</script>
+</body>
+</html>
