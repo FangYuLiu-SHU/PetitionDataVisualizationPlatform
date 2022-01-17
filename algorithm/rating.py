@@ -1,52 +1,25 @@
-import xlutils
-from xlutils.copy import copy
-
-from algorithm.group_huefen import *
-from algorithm.group_0 import *
-
 from flask import Flask, render_template, request
 import json
 import sys
 import datetime
-import torch
 import numpy as np
-from algorithm import prediction
-from algorithm.groupBehaviorPrediction.DataLoader import Dataloader
-from algorithm.groupBehaviorPrediction.LSTMGCNPMAgbp import LSTMGCNPMAGbp
 import sqlite3
-from gevent import pywsgi
 import os
 
 # 微博可视化部分添加的库
-import pandas as pd
-import snownlp as sn
-from snownlp import sentiment
 import jieba
-import wordcloud
 import re
-import matplotlib.pyplot as plt
 import glob
-import imageio
-from wordcloud import WordCloud, ImageColorGenerator
-from snownlp import sentiment
-from PIL import Image, ImageDraw, ImageFont
 from os import path
 import math as m
-import networkx as nx
 
 # 谣言可视化部分添加的库
 from flask import jsonify
-from algorithm import gameTheory
-from algorithm import sourceDetection as sd
-from algorithm import SIModel as si
-from algorithm import SIRModel as sir
-from algorithm import opinionEvolution as oe
-from algorithm import hawkesProcess
-from algorithm import GE_sourceDetection as GE
 import random
 import copy
 from flask_socketio import SocketIO
 from flask_mail import Mail, Message
+from algorithm import request_extract
 
 data_path_cache = os.path.dirname(__file__) + '/static/data/weibo/analysis_cache'
 
@@ -153,9 +126,9 @@ import csv
 import xlrd
 import xlwt
 
-dir = './static/data/'
-name = 'excel_with_emergency_degree.xlsx'
-save_name = 'excel_with_request.xlsx'
+dir = '../static/data/'
+name = 'data_excel.xlsx'
+save_name = 'excel_with_result.xlsx'
 file_path = os.path.join(dir, name)
 save_path = os.path.join(dir, save_name)
 
@@ -175,7 +148,10 @@ copy_sheet = copy_workbook.get_sheet('sheet')
 copy_sheet.write(0, 0, "xfrsq")
 copy_sheet.write(0, 1, "value")
 copy_sheet.write(0, 2, "紧急程度")
-copy_sheet.write(0, 3, "诉求")
+copy_sheet.write(0, 3, "核心词汇")
+copy_sheet.write(0, 4, "诉求问题")
+copy_sheet.write(0, 5, "相关机构")
+copy_sheet.write(0, 6, "关联地址")
 
 # 遍历
 nrows = sheet.nrows
@@ -183,7 +159,36 @@ for i in range(1, nrows):
     row_list = sheet.row_values(i)
     copy_sheet.write(i, 0, row_list[0])
     copy_sheet.write(i, 1, row_list[1])
-    copy_sheet.write(i, 2, row_list[2])
-    copy_sheet.write(i, 3, get_request(row_list[0], request_word, request_double_word))
+    newData = {}
+    # 获取逐条投诉数据
+    content = row_list[0]
+    # 算法处理
+    if request_extract.emergency_degree_classification(content, request_extract.emergency_word) == True:
+        newData['degree_of_urgency'] = "紧急"
+    else:
+        newData['degree_of_urgency'] = "一般"
+    newData['issue'] = request_extract.get_request(content, request_extract.request_word,
+                                                   request_extract.request_double_word)
+    temp_request = request_extract.get_keyinfo(content)
+    if newData['issue'] == '':
+        newData['issue'] = request_extract.get_request_by_keyword(content)
+    newData['keyword'] = temp_request['keywords']
+    newData['organization'] = temp_request['org']
+    newData['address'] = temp_request['location']
+
+    # print(str(newData['degree_of_urgency']))
+    # print(str(newData['keyword'])[1: -1])
+    # print(str(newData['issue']))
+    # print(str(newData['organization']))
+    # print(str(newData['address']))
+
+    copy_sheet.write(i, 2, str(newData['degree_of_urgency']))
+    copy_sheet.write(i, 3, str(newData['keyword'])[1: -1])
+    copy_sheet.write(i, 4, str(newData['issue']))
+    copy_sheet.write(i, 5, str(newData['organization'])[1: -1])
+    copy_sheet.write(i, 6, str(newData['address'])[1: -1])
+    print(i)
+
 
 copy_workbook.save(save_path)
+print('finish...')
