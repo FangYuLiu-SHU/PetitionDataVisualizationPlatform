@@ -111,6 +111,27 @@ def get_request(content_text, key_word, key_double_word):
                 return content
     return request
 
+#危险程度词汇，按危险等级从低到高排序
+dangerous_word = [
+    ['查处', '整改', '协调', '核查', '要求', '建议', '出行不便', '不方便', '不合理', '交通拥堵', '处理', '咨询', '核实', '帮忙', '调查',
+     '协调', '核查', '确认', '建议', '换货', '退货', '发票', '退款', '退费', '退还'],
+    ['来电咨询', '处罚', '投诉', '无证经营', '赔偿', '后果', '整顿', '违章', '异响', '噪音', '隐患', '违章', '赔偿', '管制', '诉求',
+     '报警', '加强管理', '罚款', '补贴', '维修', '交通', '排查', '无证'],
+    ['安全隐患', '消防隐患', '扰民', '导致', '极大不便', '随意执法', '报复', '受伤', '污染', '极度不便', '强拆', '偷拆', '交通事故',
+     '被偷', '违规征收', '高烧', '精神损失', '污染', '毁坏', '威胁', '污水', '排污', '刺鼻', '维修', '违规建造', '违规建筑', '噪音'],
+    ['犯法', '违法', '严重威胁', '严重侵害', '严重损害', '损失惨重', '严重影响安全', '严重安全隐患', '非常严重', '严重影响', '严重']
+]
+#根据词汇危险程度，得到一段文字的危险等级，1、2、3、4、5危险程度从底到高，默认最不危险
+#[1~5]分别对应['可忽略危险', '临界危险', '一般危险', '破坏性危险', '毁灭性危险']
+def dangerous_degree_classification(content_text, dangerous_word):
+    flag = 1
+    for index in range(3, -1, -1):
+        for word in dangerous_word[index]:
+            if word in content_text:
+                flag = index
+                return flag + 1
+    return flag
+
 #获取词的频次
 def count_word(content_text, key_word, word_num):
     for word in key_word:
@@ -148,10 +169,11 @@ copy_sheet = copy_workbook.get_sheet('sheet')
 copy_sheet.write(0, 0, "xfrsq")
 copy_sheet.write(0, 1, "value")
 copy_sheet.write(0, 2, "紧急程度")
-copy_sheet.write(0, 3, "核心词汇")
-copy_sheet.write(0, 4, "诉求问题")
-copy_sheet.write(0, 5, "相关机构")
-copy_sheet.write(0, 6, "关联地址")
+copy_sheet.write(0, 3, "危险程度")
+copy_sheet.write(0, 4, "核心词汇")
+copy_sheet.write(0, 5, "诉求问题")
+copy_sheet.write(0, 6, "相关机构")
+copy_sheet.write(0, 7, "关联地址")
 
 # 遍历
 nrows = sheet.nrows
@@ -175,7 +197,18 @@ for i in range(1, nrows):
     newData['keyword'] = temp_request['keywords']
     newData['organization'] = temp_request['org']
     newData['address'] = temp_request['location']
-
+    # [1~5]分别对应['可忽略危险', '临界危险', '一般危险', '破坏性危险', '毁灭性危险']
+    degree_of_dangerous = request_extract.dangerous_degree_classification(content, request_extract.dangerous_word)
+    if degree_of_dangerous == 1:
+        newData['degree_of_dangerous'] = '可忽略危险'
+    elif degree_of_dangerous == 2:
+        newData['degree_of_dangerous'] = '临界危险'
+    elif degree_of_dangerous == 3:
+        newData['degree_of_dangerous'] = '一般危险'
+    elif degree_of_dangerous == 4:
+        newData['degree_of_dangerous'] = '破坏性危险'
+    elif degree_of_dangerous == 5:
+        newData['degree_of_dangerous'] = '毁灭性危险'
     # print(str(newData['degree_of_urgency']))
     # print(str(newData['keyword'])[1: -1])
     # print(str(newData['issue']))
@@ -183,10 +216,11 @@ for i in range(1, nrows):
     # print(str(newData['address']))
 
     copy_sheet.write(i, 2, str(newData['degree_of_urgency']))
-    copy_sheet.write(i, 3, str(newData['keyword'])[1: -1])
-    copy_sheet.write(i, 4, str(newData['issue']))
-    copy_sheet.write(i, 5, str(newData['organization'])[1: -1])
-    copy_sheet.write(i, 6, str(newData['address'])[1: -1])
+    copy_sheet.write(i, 3, str(newData['degree_of_dangerous']))
+    copy_sheet.write(i, 4, str(newData['keyword'])[1: -1])
+    copy_sheet.write(i, 5, str(newData['issue']))
+    copy_sheet.write(i, 6, str(newData['organization'])[1: -1])
+    copy_sheet.write(i, 7, str(newData['address'])[1: -1])
     print(i)
 
 

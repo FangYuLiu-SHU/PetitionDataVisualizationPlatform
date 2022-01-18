@@ -3,6 +3,7 @@ import json
 import sqlite3
 from flask import jsonify
 from algorithm import request_extract
+from algorithm import emotionalAnalysisOfSingleData
 import random
 from flask_socketio import SocketIO
 from flask_mail import Mail, Message
@@ -209,6 +210,15 @@ def LawsuitExtract():
     newData['keyword'] = temp_request['keywords']
     newData['organization'] = temp_request['org']
     newData['address'] = temp_request['location']
+    #[1~5]分别对应['可忽略危险', '临界危险', '一般危险', '破坏性危险', '毁灭性危险']
+    newData['degree_of_dangerous'] = request_extract.dangerous_degree_classification(content, request_extract.dangerous_word)
+    # 填补情感分析
+    if content != '':
+        newData['content_err'] = 1
+        newData['senti_value'] = emotionalAnalysisOfSingleData.sen_value(emotionalAnalysisOfSingleData.clearTxt(content))
+    else:
+        newData['content_err'] = 0
+        newData['senti_value'] = 0
     # print(temp_request)
     # print(content)
     return json.dumps(newData)
