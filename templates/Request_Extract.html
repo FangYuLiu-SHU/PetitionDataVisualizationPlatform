@@ -30,6 +30,11 @@
             <div class="layui-input-inline" style="margin-top: 8px;">
                 <span class="layui-badge" id="degree_of_urgency" style="height: 18px;font-size: 14px;">紧急</span>
             </div>
+            <label class="layui-form-label">危险程度：</label>
+            <div id="degree_of_dangerous" style="margin-top: -3px;"></div>
+<!--            <div class="layui-input-inline" style="margin-top: 8px;">-->
+<!--                <span class="layui-badge" id="degree_of_dangerous" style="height: 18px;font-size: 14px;">紧急</span>-->
+<!--            </div>-->
         </div>
         <div class="layui-form-item" id="keyword_container">
             <label class="layui-form-label">核心词汇：</label>
@@ -58,8 +63,8 @@
         </div>
     </form>
 </div>
-<div id="container" style="height: 100%;width:30%">
-    <div id="chart1" style="width: 200%; height: 100%;float:left;"></div>
+<div id="container" style="visibility: hidden;">
+    <div id="chart1" style="height: 300%; width: 40%; float:left;"></div>
 </div>
 <script src="../static/layui/layui.js"></script>
 <script src="../static/js/jquery.js"></script>
@@ -67,13 +72,19 @@
 <script type="text/javascript" src="/static/js/function.js"></script>
 <script src="../static/js/jquery.cookie.js"></script>
 <script type="text/javascript">
-layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit'], function(){
+layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit', 'rate'], function(){
     var element = layui.element
         , form = layui.form
         , layer = layui.layer
         , util = layui.util
         , table = layui.table
+        , rate = layui.rate
         , $ = layui.jquery;
+    //代码
+    (() => {
+        if ($.cookie('user') == undefined)
+            $(window).attr('location', '/login');
+    })()
     //开始时隐藏结果标签
     var layedit = layui.layedit;
     var editIndex = layedit.build('rich_text_box', {
@@ -81,11 +92,6 @@ layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit'], function(){
         height: 100
     });
     layedit.sync(editIndex);
-    //代码
-    (()=>{
-        if($.cookie('user') == undefined)
-            $(window).attr('location','/login');
-    })()
     //监听提交
     form.on('submit(btn_submit)', function (data) {
         var content = layedit.getText(editIndex); //文本框，纯文本内容读取，getContent读取html内容
@@ -102,12 +108,14 @@ layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit'], function(){
             data: postData,
             success: function (newData) {
                 layer.closeAll('loading');
-                degree_of_urgency = newData["degree_of_urgency"];
-                keyword = newData["keyword"];
-                issue = newData["issue"];
-                organization = newData["organization"];
-                address = newData["address"];
-                degree_of_urgency_span = document.getElementById('degree_of_urgency');
+                var degree_of_urgency = newData["degree_of_urgency"];
+                var keyword = newData["keyword"];
+                var issue = newData["issue"];
+                var organization = newData["organization"];
+                var address = newData["address"];
+                var degree_of_dangerous = newData['degree_of_dangerous']
+
+                var degree_of_urgency_span = document.getElementById('degree_of_urgency');
                 degree_of_urgency_span.innerText = degree_of_urgency;
                 if(degree_of_urgency == "一般"){
                     degree_of_urgency_span.className = "layui-badge layui-bg-gray";
@@ -119,8 +127,108 @@ layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit'], function(){
                 document.getElementById('issue').innerText = issue;
                 document.getElementById('organization').innerText = organization;
                 document.getElementById('address').innerText = address;
+                //危险等级，星型展示，并且显示文字
+                rate.render({
+                    elem: '#degree_of_dangerous'
+                    , value: degree_of_dangerous //危险程度值，几颗星
+                    , text: true //开启文本
+                    , theme: '#FE0000'
+                    , readonly: true
+                    , setText: function (value) { //自定义文本的回调
+                        var arrs = {
+                            '1': '可忽略危险'
+                            , '2': '临界危险'
+                            , '3': '一般危险'
+                            , '4': '破坏性危险'
+                            , '5': '毁灭性危险'
+                        };
+                        this.span.text(arrs[value] || (value + "星"));
+                    }
+                });
                 //展示结果
                 document.getElementById("my_container").style.visibility="visible";
+                //补充情感分析结果展示
+                var senti_value = newData["senti_value"];
+                var content_err = newData['content_err'];
+                var dom = document.getElementById("chart1");   //获取要加入内容的容器
+                var myChart = echarts.init(dom);
+                var option;
+                function toDecimal(x) {
+                    var f = parseFloat(x);
+                    if (isNaN(f)) {
+                        return;
+                    }
+                    f = Math.round(x*100)/100;
+                    return f;
+                }
+                if(content_err===1) {
+                    // senti_other=toDecimal(1-senti_value)
+                    // diff=senti_value-senti_other
+                    // if(Math.abs(diff)<=0.1)
+                    if(senti_value<0.57 && senti_value>=0.5)
+                    {
+                        layer.msg('该文本情感倾向偏向中性')
+                    }
+                    if(senti_value>=0.57)
+                         {
+                            layer.msg('该文本情感倾向偏向积极倾向')
+                         }
+                    if(senti_value<0.5){
+                             layer.msg('该文本情感倾向偏向消极倾向')
+                         }
+                    option = {
+                        title: {
+                            text: '当前文本情感分布',
+                            left: 'center',
+                        },
+                        tooltip: {
+                            trigger: 'item',
+                            // formatter: '{a} <br/>{b} : {c} ({d}%)'
+                        },
+                        legend: {
+                            selectedMode:false,
+                            orient: 'vertical',
+                            left: 'left',
+                            data: ['积极极性', '消极极性']
+                        },
+                        series: [
+                            {
+                                color:["#ec5151", "#5470c6"],
+                                tooltip:{
+                                    trigger:'item',
+                                    formatter:'{a} <br/>{b} : {c} ({d}%)'
+                                },
+                                name: '情感极性',
+                                type: 'pie',
+                                radius: '60%',
+                                label: {
+                                    normal: {
+                                        position: "outside",
+                                        show: true,
+                                        formatter:'{b} : {c} ({d}%)'
+                                    }
+                                },
+                                emphasis: {
+                                    itemStyle: {
+                                        shadowBlur: 10,
+                                        shadowOffsetX: 0,
+                                        shadowColor: 'rgba(0,0,0,0.5)'
+                                    }
+                                },
+                                data: [
+                                    {value: senti_value, name: '积极情绪'},
+                                    {value: toDecimal(1-senti_value), name: '消极情绪'}
+                                ]
+                            }
+                        ]
+                    };
+                    myChart.setOption(option)
+                }
+                else{
+                    layer.msg('输入格式有误，请重新输入');
+                }
+                //展示结果
+                document.getElementById("container").style.visibility="visible";
             },
             error: function () {
                 layer.msg('处理出错！', {icon: 7, time: 2000, shade: [0.6, '#000', true]});
@@ -139,6 +247,7 @@ layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit'], function(){
         document.getElementById('address').innerText = "";
         // 重置时隐藏结果标签
         document.getElementById("my_container").style.visibility = "hidden";
+        document.getElementById("container").style.visibility="hidden";
         form.render();
     });
     form.render();
