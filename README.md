@@ -6,5 +6,6 @@
 &emsp;&emsp;5.需要读取的图片放置在static/image文件夹下<br>
 &emsp;&emsp;6.前端所需要的js库放置在static/js文件夹下<br>
 &emsp;&emsp;7.前端所需要的layui框架放置在static/layui文件夹下<br>
+&emsp;&emsp;8.模型所有的文件放置在model文件夹下<br>
 # 项目运行说明
 &emsp;&emsp;运行app.py后端服务，利用生成的网址进行访问本地网站。<br>

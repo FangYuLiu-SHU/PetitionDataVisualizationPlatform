@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 import sqlite3
 import os
-
+import snownlp as sn
 # 微博可视化部分添加的库
 import jieba
 import re
@@ -149,7 +149,7 @@ import xlwt
 
 dir = '../static/data/'
 name = 'data_excel.xlsx'
-save_name = 'excel_with_result.xlsx'
+save_name = 'excel_with_label.xlsx'
 file_path = os.path.join(dir, name)
 save_path = os.path.join(dir, save_name)
 
@@ -166,15 +166,61 @@ copy_sheet = copy_workbook.add_sheet('sheet')
 copy_sheet = copy_workbook.get_sheet('sheet')
 
 # 写入一个值，括号内分别为行数、列数、内容
+# copy_sheet.write(0, 0, "xfrsq")
+# copy_sheet.write(0, 1, "value")
+# copy_sheet.write(0, 2, "紧急程度")
+# copy_sheet.write(0, 3, "危险程度")
+# copy_sheet.write(0, 4, "核心词汇")
+# copy_sheet.write(0, 5, "诉求问题")
+# copy_sheet.write(0, 6, "相关机构")
+# copy_sheet.write(0, 7, "关联地址")
+
+class_value = {}
+# 遍历
+nrows = sheet.nrows
+for i in range(1, nrows):
+    row_list = sheet.row_values(i)
+    # 获取逐条投诉数据
+    content = row_list[0]
+    value = row_list[1]
+    # #机构主题类别标签统计
+    if value not in class_value.keys():
+        class_value[value] = 1
+    else:
+        class_value[value] = class_value[value] + 1
+
+#机构主题类别标签统计排序
+class_value = dict(dict_sort_by_value(class_value))
+# 字典文件写成json文件
+json_str = json.dumps(class_value)
+json_path = os.path.join(dir, 'class_value_count.json')
+with open(json_path, 'w', encoding='utf-8') as json_file:
+    json_file.write(json_str)
+print('saved...')
+print(class_value)
+
+index_of_value = {}
+index = 0
+x = 0
+y = 0
+for key in class_value.keys():
+    index_of_value[key] = index
+    if key == '其他':
+        print('index_of_其他:', index)
+    index = index + 1
+    if class_value[key] <= 5:
+        x = x + class_value[key]
+        y = y + 1
+print(index_of_value)
+print('len', len(class_value))
+print('x', x)
+print('y', y)
+
 copy_sheet.write(0, 0, "xfrsq")
 copy_sheet.write(0, 1, "value")
-copy_sheet.write(0, 2, "紧急程度")
-copy_sheet.write(0, 3, "危险程度")
-copy_sheet.write(0, 4, "核心词汇")
-copy_sheet.write(0, 5, "诉求问题")
-copy_sheet.write(0, 6, "相关机构")
-copy_sheet.write(0, 7, "关联地址")
-
+copy_sheet.write(0, 2, "部门标签")
+copy_sheet.write(0, 3, "全部标签值")
+copy_sheet.write(0, 4, "归并少类标签值")
 # 遍历
 nrows = sheet.nrows
 for i in range(1, nrows):
@@ -184,45 +230,52 @@ for i in range(1, nrows):
     newData = {}
     # 获取逐条投诉数据
     content = row_list[0]
-    # 算法处理
-    if request_extract.emergency_degree_classification(content, request_extract.emergency_word) == True:
-        newData['degree_of_urgency'] = "紧急"
+    value = row_list[1]
+    # # 算法处理
+    # if request_extract.emergency_degree_classification(content, request_extract.emergency_word) == True:
+    #     newData['degree_of_urgency'] = "紧急"
+    # else:
+    #     newData['degree_of_urgency'] = "一般"
+    # newData['issue'] = request_extract.get_request(content, request_extract.request_word,
+    #                                                request_extract.request_double_word)
+    # temp_request = request_extract.get_keyinfo(content)
+    # if newData['issue'] == '':
+    #     newData['issue'] = request_extract.get_request_by_keyword(content)
+    # newData['keyword'] = temp_request['keywords']
+    # newData['organization'] = temp_request['org']
+    # newData['address'] = temp_request['location']
+    # # [1~5]分别对应['可忽略危险', '临界危险', '一般危险', '破坏性危险', '毁灭性危险']
+    # degree_of_dangerous = request_extract.dangerous_degree_classification(content, request_extract.dangerous_word)
+    # if degree_of_dangerous == 1:
+    #     newData['degree_of_dangerous'] = '可忽略危险'
+    # elif degree_of_dangerous == 2:
+    #     newData['degree_of_dangerous'] = '临界危险'
+    # elif degree_of_dangerous == 3:
+    #     newData['degree_of_dangerous'] = '一般危险'
+    # elif degree_of_dangerous == 4:
+    #     newData['degree_of_dangerous'] = '破坏性危险'
+    # elif degree_of_dangerous == 5:
+    #     newData['degree_of_dangerous'] = '毁灭性危险'
+
+    # copy_sheet.write(i, 2, str(newData['degree_of_urgency']))
+    # copy_sheet.write(i, 3, str(newData['degree_of_dangerous']))
+    # copy_sheet.write(i, 4, str(newData['keyword'])[1: -1])
+    # copy_sheet.write(i, 5, str(newData['issue']))
+    # copy_sheet.write(i, 6, str(newData['organization'])[1: -1])
+    # copy_sheet.write(i, 7, str(newData['address'])[1: -1])
+    # # #机构主题类别标签统计
+    # if value not in class_value.keys():
+    #     class_value[value] = 1
+    # else:
+    #     class_value[value] = class_value[value] + 1
+    if class_value[value] > 5:
+        copy_sheet.write(i, 2, row_list[1])
+        copy_sheet.write(i, 4, index_of_value[value])
     else:
-        newData['degree_of_urgency'] = "一般"
-    newData['issue'] = request_extract.get_request(content, request_extract.request_word,
-                                                   request_extract.request_double_word)
-    temp_request = request_extract.get_keyinfo(content)
-    if newData['issue'] == '':
-        newData['issue'] = request_extract.get_request_by_keyword(content)
-    newData['keyword'] = temp_request['keywords']
-    newData['organization'] = temp_request['org']
-    newData['address'] = temp_request['location']
-    # [1~5]分别对应['可忽略危险', '临界危险', '一般危险', '破坏性危险', '毁灭性危险']
-    degree_of_dangerous = request_extract.dangerous_degree_classification(content, request_extract.dangerous_word)
-    if degree_of_dangerous == 1:
-        newData['degree_of_dangerous'] = '可忽略危险'
-    elif degree_of_dangerous == 2:
-        newData['degree_of_dangerous'] = '临界危险'
-    elif degree_of_dangerous == 3:
-        newData['degree_of_dangerous'] = '一般危险'
-    elif degree_of_dangerous == 4:
-        newData['degree_of_dangerous'] = '破坏性危险'
-    elif degree_of_dangerous == 5:
-        newData['degree_of_dangerous'] = '毁灭性危险'
-    # print(str(newData['degree_of_urgency']))
-    # print(str(newData['keyword'])[1: -1])
-    # print(str(newData['issue']))
-    # print(str(newData['organization']))
-    # print(str(newData['address']))
-
-    copy_sheet.write(i, 2, str(newData['degree_of_urgency']))
-    copy_sheet.write(i, 3, str(newData['degree_of_dangerous']))
-    copy_sheet.write(i, 4, str(newData['keyword'])[1: -1])
-    copy_sheet.write(i, 5, str(newData['issue']))
-    copy_sheet.write(i, 6, str(newData['organization'])[1: -1])
-    copy_sheet.write(i, 7, str(newData['address'])[1: -1])
-    print(i)
-
+        copy_sheet.write(i, 2, '其他')
+        copy_sheet.write(i, 4, 1)
+    copy_sheet.write(i, 3, index_of_value[value])
+    # print(i)
 
 copy_workbook.save(save_path)
 print('finish...')
