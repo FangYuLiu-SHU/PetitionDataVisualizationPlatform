@@ -32,9 +32,12 @@
             </div>
             <label class="layui-form-label">危险程度：</label>
             <div id="degree_of_dangerous" style="margin-top: -3px;"></div>
-<!--            <div class="layui-input-inline" style="margin-top: 8px;">-->
-<!--                <span class="layui-badge" id="degree_of_dangerous" style="height: 18px;font-size: 14px;">紧急</span>-->
-<!--            </div>-->
+        </div>
+        <div class="layui-form-item" id="department_container">
+            <label class="layui-form-label">预测类别：</label>
+            <div class="layui-input-inline" style="width: 88%; margin-left: -16px;">
+                <label class="layui-form-label" id="department" style="width: 100%; text-align: left;">[八嘎, 压路]</label>
+            </div>
         </div>
         <div class="layui-form-item" id="keyword_container">
             <label class="layui-form-label">核心词汇：</label>
@@ -113,7 +116,8 @@ layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit', 'rate'], func
                 var issue = newData["issue"];
                 var organization = newData["organization"];
                 var address = newData["address"];
-                var degree_of_dangerous = newData['degree_of_dangerous']
+                var degree_of_dangerous = newData['degree_of_dangerous'];
+                var department = newData['department'];
 
                 var degree_of_urgency_span = document.getElementById('degree_of_urgency');
                 degree_of_urgency_span.innerText = degree_of_urgency;
@@ -127,6 +131,7 @@ layui.use(['form', 'element', 'layer', 'util', 'table', 'layedit', 'rate'], func
                 document.getElementById('issue').innerText = issue;
                 document.getElementById('organization').innerText = organization;
                 document.getElementById('address').innerText = address;
+                document.getElementById('department').innerText = department;
                 //危险等级，星型展示，并且显示文字
                 rate.render({
                     elem: '#degree_of_dangerous'
