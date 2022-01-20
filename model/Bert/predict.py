@@ -18,7 +18,7 @@ def predict(string):
     config.device = torch.device('cpu')
     config.batch_size= 1
     model = x.Model(config)
-    model.load_state_dict(torch.load(config.save_path))
+    model.load_state_dict(torch.load(config.save_path, map_location=torch.device('cpu')))
     model.eval()
 
     PAD, CLS = '[PAD]', '[CLS]'  # padding符号, bert中综合信息符号
