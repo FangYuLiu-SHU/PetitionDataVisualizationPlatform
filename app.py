@@ -1,3 +1,8 @@
+import os
+
+import openpyxl
+import xlrd
+import xlwt
 from flask import Flask, render_template, request
 import json
 import sqlite3
@@ -199,6 +204,10 @@ def LawsuitExtract():
     newData = {}
     # 获取前端请求的数据
     content = request.form.get('content')
+    content = content.replace('\n', '')
+    content = content.replace('\r', '')
+    content = content.replace('\t', '')
+    content = content.replace(' ', '')
     #算法处理
     if request_extract.emergency_degree_classification(content, request_extract.emergency_word) == True:
         newData['degree_of_urgency'] = "紧急"
@@ -213,10 +222,6 @@ def LawsuitExtract():
     newData['address'] = temp_request['location']
     #[1~5]分别对应['可忽略危险', '临界危险', '一般危险', '破坏性危险', '毁灭性危险']
     newData['degree_of_dangerous'] = request_extract.dangerous_degree_classification(content, request_extract.dangerous_word)
-    content = content.replace('\n', '')
-    content = content.replace('\r', '')
-    content = content.replace('\t', '')
-    content = content.replace(' ', '')
     newData['department'] = predict.predict(content)
     # 填补情感分析
     if content != '':
@@ -229,6 +234,75 @@ def LawsuitExtract():
     # print(content)
     return json.dumps(newData)
 
+#写入预测结果到第7列
+def write_predict_result(dir, name, save_name, request_Columns, department_Columns, result_Colunms):
+    file_path = os.path.join(dir, name)
+    save_path = os.path.join(dir, save_name)
+
+    # 打开文件
+    workbook = openpyxl.load_workbook(file_path)
+    sheetnames = workbook.get_sheet_names()
+    sheet = workbook.get_sheet_by_name(sheetnames[0])
+
+    ## 或者如果你只是想创建一张空表
+    copy_workbook = openpyxl.Workbook()
+    # 创建一个sheet
+    copy_sheet = copy_workbook.create_sheet(index=0)
+
+    # 写入一个值，括号内分别为行数、列数、内容
+    copy_sheet.cell(1, 1).value = "登记时间"
+    copy_sheet.cell(1, 2).value = "诉求"
+    copy_sheet.cell(1, 3).value = "目的代码"
+    copy_sheet.cell(1, 4).value = "目的"
+    copy_sheet.cell(1, 5).value = "分类代码"
+    copy_sheet.cell(1, 6).value = "分类"
+    copy_sheet.cell(1, 7).value = "预测分类"
+    copy_sheet.cell(1, 8).value = "紧急程度"
+    copy_sheet.cell(1, 9).value = "危险程度"
+    copy_sheet.cell(1, 10).value = "核心词汇"
+    copy_sheet.cell(1, 11).value = "诉求问题"
+    copy_sheet.cell(1, 12).value = "相关机构"
+    copy_sheet.cell(1, 13).value = "关联地址"
+    # 遍历
+    rows = sheet.max_row
+    clos = sheet.max_column
+    print('rows:', rows)
+    print('clos:', clos)
+    for row in range(2, rows + 1):
+        copy_sheet.cell(row, 1).value = sheet.cell(row, 1).value
+        copy_sheet.cell(row, 2).value = sheet.cell(row, 2).value
+        copy_sheet.cell(row, 3).value = sheet.cell(row, 3).value
+        copy_sheet.cell(row, 4).value = sheet.cell(row, 4).value
+        copy_sheet.cell(row, 5).value = sheet.cell(row, 5).value
+        copy_sheet.cell(row, 6).value = sheet.cell(row, 6).value
+        # 7列为预测分类结果
+        copy_sheet.cell(row, 8).value = sheet.cell(row, 8).value
+        copy_sheet.cell(row, 9).value = sheet.cell(row, 9).value
+        copy_sheet.cell(row, 10).value = sheet.cell(row, 10).value
+        copy_sheet.cell(row, 11).value = sheet.cell(row, 11).value
+        copy_sheet.cell(row, 12).value = sheet.cell(row, 12).value
+        copy_sheet.cell(row, 13).value = sheet.cell(row, 13).value
+        # 获取逐条投诉数据
+        request = sheet.cell(row, request_Columns).value
+        request = request.replace('\n', '')
+        request = request.replace('\r', '')
+        request = request.replace('\t', '')
+        request = request.replace(' ', '')
+        predict_department = predict.predict(request)
+        copy_sheet.cell(row, result_Colunms).value = predict_department
+        print(row)
+
+    copy_workbook.save(save_path)
+    print('finish...')
+
 if __name__ == '__main__':
+    # #跑出预测结果到表中第7列
+    # dir = './static/data/'
+    # name = 'excel1_with_results.xlsx'
+    # save_name = 'excel2_with_results.xlsx'
+    # request_Columns = 2
+    # department_Columns = 6
+    # result_Colunms = 7
+    # write_predict_result(dir, name, save_name, request_Columns, department_Columns, result_Colunms)
     #总运行
     app.run()
