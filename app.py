@@ -288,21 +288,21 @@ def write_predict_result(dir, name, save_name, request_Columns, department_Colum
         assert len(request_list) == batch_size and len(predict_department_list) == batch_size
         #一次性写入一批结果
         for index in range(row, row + batch_size):
-            copy_sheet.cell(index, 1).value = sheet.cell(row, 1).value
-            copy_sheet.cell(index, 2).value = sheet.cell(row, 2).value
-            copy_sheet.cell(index, 3).value = sheet.cell(row, 3).value
-            copy_sheet.cell(index, 4).value = sheet.cell(row, 4).value
-            copy_sheet.cell(index, 5).value = sheet.cell(row, 5).value
-            copy_sheet.cell(index, 6).value = sheet.cell(row, 6).value
+            copy_sheet.cell(index, 1).value = sheet.cell(index, 1).value
+            copy_sheet.cell(index, 2).value = sheet.cell(index, 2).value
+            copy_sheet.cell(index, 3).value = sheet.cell(index, 3).value
+            copy_sheet.cell(index, 4).value = sheet.cell(index, 4).value
+            copy_sheet.cell(index, 5).value = sheet.cell(index, 5).value
+            copy_sheet.cell(index, 6).value = sheet.cell(index, 6).value
             # 7列为预测分类结果
             copy_sheet.cell(index, result_Colunms).value = predict_department_list[index - row]
 
-            copy_sheet.cell(index, 8).value = sheet.cell(row, 8).value
-            copy_sheet.cell(index, 9).value = sheet.cell(row, 9).value
-            copy_sheet.cell(index, 10).value = sheet.cell(row, 10).value
-            copy_sheet.cell(index, 11).value = sheet.cell(row, 11).value
-            copy_sheet.cell(index, 12).value = sheet.cell(row, 12).value
-            copy_sheet.cell(index, 13).value = sheet.cell(row, 13).value
+            copy_sheet.cell(index, 8).value = sheet.cell(index, 8).value
+            copy_sheet.cell(index, 9).value = sheet.cell(index, 9).value
+            copy_sheet.cell(index, 10).value = sheet.cell(index, 10).value
+            copy_sheet.cell(index, 11).value = sheet.cell(index, 11).value
+            copy_sheet.cell(index, 12).value = sheet.cell(index, 12).value
+            copy_sheet.cell(index, 13).value = sheet.cell(index, 13).value
         print(row)
 
     copy_workbook.save(save_path)
