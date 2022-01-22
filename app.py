@@ -235,7 +235,7 @@ def LawsuitExtract():
     return json.dumps(newData)
 
 #写入预测结果到第7列
-def write_predict_result(dir, name, save_name, request_Columns, department_Columns, result_Colunms):
+def write_predict_result(dir, name, save_name, request_Columns, department_Columns, result_Colunms, batch_size=64):
     file_path = os.path.join(dir, name)
     save_path = os.path.join(dir, save_name)
 
@@ -268,28 +268,41 @@ def write_predict_result(dir, name, save_name, request_Columns, department_Colum
     clos = sheet.max_column
     print('rows:', rows)
     print('clos:', clos)
-    for row in range(2, rows + 1):
-        copy_sheet.cell(row, 1).value = sheet.cell(row, 1).value
-        copy_sheet.cell(row, 2).value = sheet.cell(row, 2).value
-        copy_sheet.cell(row, 3).value = sheet.cell(row, 3).value
-        copy_sheet.cell(row, 4).value = sheet.cell(row, 4).value
-        copy_sheet.cell(row, 5).value = sheet.cell(row, 5).value
-        copy_sheet.cell(row, 6).value = sheet.cell(row, 6).value
-        # 7列为预测分类结果
-        copy_sheet.cell(row, 8).value = sheet.cell(row, 8).value
-        copy_sheet.cell(row, 9).value = sheet.cell(row, 9).value
-        copy_sheet.cell(row, 10).value = sheet.cell(row, 10).value
-        copy_sheet.cell(row, 11).value = sheet.cell(row, 11).value
-        copy_sheet.cell(row, 12).value = sheet.cell(row, 12).value
-        copy_sheet.cell(row, 13).value = sheet.cell(row, 13).value
-        # 获取逐条投诉数据
-        request = sheet.cell(row, request_Columns).value
-        request = request.replace('\n', '')
-        request = request.replace('\r', '')
-        request = request.replace('\t', '')
-        request = request.replace(' ', '')
-        predict_department = predict.predict(request)
-        copy_sheet.cell(row, result_Colunms).value = predict_department
+    for row in range(2, rows + 1, batch_size):
+        #防止最后一批数据越界
+        if row+batch_size > rows+1:
+            batch_size = rows + 1 - row
+        #一次性获取一批诉求
+        request_list = []
+        for index in range(row, row + batch_size):
+            # 获取逐条投诉数据
+            request = sheet.cell(index, request_Columns).value
+            request = request.replace('\n', '')
+            request = request.replace('\r', '')
+            request = request.replace('\t', '')
+            request = request.replace(' ', '')
+            request_list.append(request)
+        #批预测
+        predict_department_list = predict.predict_list(request_list)
+        #判断输入输出数量是否跟批次对应上
+        assert len(request_list) == batch_size and len(predict_department_list) == batch_size
+        #一次性写入一批结果
+        for index in range(row, row + batch_size):
+            copy_sheet.cell(index, 1).value = sheet.cell(row, 1).value
+            copy_sheet.cell(index, 2).value = sheet.cell(row, 2).value
+            copy_sheet.cell(index, 3).value = sheet.cell(row, 3).value
+            copy_sheet.cell(index, 4).value = sheet.cell(row, 4).value
+            copy_sheet.cell(index, 5).value = sheet.cell(row, 5).value
+            copy_sheet.cell(index, 6).value = sheet.cell(row, 6).value
+            # 7列为预测分类结果
+            copy_sheet.cell(index, result_Colunms).value = predict_department_list[index - row]
+
+            copy_sheet.cell(index, 8).value = sheet.cell(row, 8).value
+            copy_sheet.cell(index, 9).value = sheet.cell(row, 9).value
+            copy_sheet.cell(index, 10).value = sheet.cell(row, 10).value
+            copy_sheet.cell(index, 11).value = sheet.cell(row, 11).value
+            copy_sheet.cell(index, 12).value = sheet.cell(row, 12).value
+            copy_sheet.cell(index, 13).value = sheet.cell(row, 13).value
         print(row)
 
     copy_workbook.save(save_path)
@@ -303,6 +316,7 @@ if __name__ == '__main__':
     # request_Columns = 2
     # department_Columns = 6
     # result_Colunms = 7
-    # write_predict_result(dir, name, save_name, request_Columns, department_Columns, result_Colunms)
+    # batch_size = 32
+    # write_predict_result(dir, name, save_name, request_Columns, department_Columns, result_Colunms, batch_size)
     #总运行
     app.run()
