@@ -43,9 +43,15 @@ def get_keyinfo(s):
 
 # 获取用户需求
 def get_request_by_keyword(s):
-    keyword = jieba.analyse.extract_tags(s, topK=1, withWeight=True, allowPOS=())[0][0]
+    try:
+        keyword = jieba.analyse.extract_tags(s, topK=1, withWeight=True, allowPOS=())[0][0]
+        # result = [i for i in re.split('[，,.。]', s) if keyword in i][-1]
+        result = [i for i in re.split('[，,。]', s) if keyword in i][-1]
+    except Exception as e:
+        print(e)
+        return ''
     # 返回的是字符串
-    return [i for i in re.split('[，,.。]', s) if keyword in i][-1]
+    return result
 
 #紧急词汇
 emergency_word = ['尽快', '马上', '及时', '盼复', '盼', '反映多次', '多次反映', '要求回复', '投诉', '多次询问', '严重', '催补',
