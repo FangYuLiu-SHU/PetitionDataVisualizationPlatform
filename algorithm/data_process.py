@@ -2,6 +2,8 @@ import json
 import os
 import xlrd
 import xlwt
+import random
+import openpyxl
 
 #按字典value值排序
 def dict_sort_by_value(mydict, reverse=True):
@@ -114,6 +116,82 @@ def write_class(class_dir, class_name, label_value):
     for department in label_value.keys():
         classWrite.write(department + '\n')
     classWrite.close()
+
+# 大表格读写，剔除指定类别='其他'的行
+def remove_lines_by_className(dir, excel_name, save_dir, save_name, className='其他'):
+    file_path = os.path.join(dir, excel_name)
+    save_path = os.path.join(save_dir, save_name)
+
+    # 打开文件
+    workbook = openpyxl.load_workbook(file_path)
+    sheetnames = workbook.get_sheet_names()
+    sheet = workbook.get_sheet_by_name(sheetnames[0])
+
+    ## 或者如果你只是想创建一张空表
+    copy_workbook = openpyxl.Workbook()
+    # 创建一个sheet
+    copy_sheet = copy_workbook.create_sheet(index=0)
+
+    # 遍历
+    rows = sheet.max_row
+    clos = sheet.max_column
+    print('rows:', rows)
+    print('clos:', clos)
+    index = 1
+    for row in range(1, rows + 1):
+        label = sheet.cell(row, 6).value
+        label = label.replace('\n', '')
+        label = label.replace('\r', '')
+        label = label.replace('\t', '')
+        label = label.replace(' ', '')
+        if label.strip() != '其他':
+            copy_sheet.cell(index, 1).value = sheet.cell(row, 1).value
+            copy_sheet.cell(index, 2).value = sheet.cell(row, 2).value
+            copy_sheet.cell(index, 3).value = sheet.cell(row, 3).value
+            copy_sheet.cell(index, 4).value = sheet.cell(row, 4).value
+            copy_sheet.cell(index, 5).value = sheet.cell(row, 5).value
+            copy_sheet.cell(index, 6).value = sheet.cell(row, 6).value
+            index += 1
+        print(row)
+
+    copy_workbook.save(save_path)
+    print('finish...')
+
+# 数据集划分
+def split_dataset(dir, txt_name, train_name, val_name, test_name, total_num, train_num, val_num, test_num):
+    data_path = os.path.join(dir, txt_name)
+    train_path = os.path.join(dir, train_name)
+    val_path = os.path.join(dir, val_name)
+    test_path = os.path.join(dir, test_name)
+    train_Write = open(train_path, 'r+', encoding='utf-8')
+    val_Write = open(val_path, 'r+', encoding='utf-8')
+    test_Write = open(test_path, 'r+', encoding='utf-8')
+    #生成行下标list
+    index_list = []
+    for index in range(total_num):
+        index_list.append(index)
+    #打乱行下标list，相当于打乱数据
+    random.shuffle(index_list)
+    #乱的数据分别填充，进行split
+    index = 0
+    for line in open(data_path, encoding='utf-8'):
+        if index < val_num:
+            val_Write.write(line)
+        elif index < (val_num + test_num):
+            test_Write.write(line)
+        else:
+            train_Write.write(line)
+        index += 1
+    train_Write.close()
+    val_Write.close()
+    test_Write.close()
+    print('finished...')
+
+# 测试剔除类别函数remove_lines_by_className
+# remove_lines_by_className('../static/data/', 'data_excel1.xlsx', '../static/data/', 'data_excel2.xlsx', className='其他')
+
+# 测试数据集划分函数split_dataset
+# split_dataset('../static/data/', 'text_label.txt', 'train.txt', 'val.txt', 'test.txt', 373326, 299120, 37376, 36830)    
 
 # # 测试函数 get_lines_count
 line_count_dict = get_lines_count('../static/data/', 'data_excel1.xlsx', 1, 5)
